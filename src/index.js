@@ -1,12 +1,59 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React from 'react'
+import ReactDOM from 'react-dom'
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import { createStore, applyMiddleware } from 'redux'
+import thunk from 'redux-thunk'
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+import Counter from './Counter'
+import { nextCountAPI } from './API'
+
+const initialState = {
+  count: 0,
+  isFetching: false,
+}
+
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case 'REQUEST_NEXT_COUNT':
+      return {
+        ...state,
+        isFetching: true,
+      }
+    case 'RECEIVE_NEXT_COUNT':
+      return {
+        ...state,
+        count: action.nextCount,
+        isFetching: false,
+      }
+    default:
+      return state
+  }
+}
+
+export const requestNextCount = () => ({
+  type: 'REQUEST_NEXT_COUNT',
+})
+export const receiveNextCount = nextCount => ({
+  type: 'RECEIVE_NEXT_COUNT',
+  nextCount,
+})
+export const nextCount = () => (dispatch, getState) => {
+  const { count } = getState()
+
+  dispatch(requestNextCount())
+  nextCountAPI(count).then(nextCount => {
+    dispatch(receiveNextCount(nextCount))
+  })
+}
+
+
+const store = createStore(reducer, applyMiddleware(thunk))
+
+const render = () => {
+  ReactDOM.render(
+    <Counter store={store} />, 
+    document.getElementById('root')
+  )
+}
+render()
+store.subscribe(render)
